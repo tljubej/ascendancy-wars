@@ -4,17 +4,23 @@ use std::fmt::{Display, Formatter};
 
 const N_VOWELS: usize = 5;
 const N_CONSONANTS: usize = 21;
+const MIN_NAME_LEN: u32 = 1;
+const MAX_MIN_NAME_LEN: u32 = 3;
+const MAX_NAME_LEN: u32 = 7;
+const MAX_TWO_CONSONANTS_CHANCE: f64 = 0.1;
+const MAX_FLIP_ORDER_CHANCE: f64 = 0.3;
 
-static VOWEL_DISTRIBUTION: [u32; N_VOWELS] = [33, 33, 20, 10, 4];
+static VOWEL_DISTRIBUTION: [u32; N_VOWELS] = [33, 33, 20, 6, 4];
 static CONSONANT_DISTRIBUTION: [u32; N_CONSONANTS] = [
     20,
     15,
     15,
     15,
-    1,
+    7,
     5,
     3,
     3,
+    2,
     2,
     1,
     1,
@@ -22,12 +28,11 @@ static CONSONANT_DISTRIBUTION: [u32; N_CONSONANTS] = [
     1,
     1,
     1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
+    0,
+    0,
+    0,
+    0,
+    0,
 ];
 
 static VOWELS: [char; N_VOWELS] = ['a', 'e', 'i', 'o', 'u'];
@@ -60,6 +65,8 @@ pub struct Culture {
     vowel_probabilities: Vec<Weighted<char>>,
     consonant_probabilities: Vec<Weighted<char>>,
     flip_order_chance: f64,
+    two_consonants_chance: f64,
+    min_name_length: u32,
     max_name_length: u32,
 }
 
@@ -76,10 +83,12 @@ impl Display for Culture {
 
         write!(
             f,
-            "{:?}, {:?}, foc:{}, mnl:{}",
+            "{:?}, {:?}, foc:{}, tcc:{}, minnl:{} maxnl:{}",
             print_probs(&self.vowel_probabilities),
             print_probs(&self.consonant_probabilities),
             self.flip_order_chance,
+            self.two_consonants_chance,
+            self.min_name_length,
             self.max_name_length
         )
     }
@@ -110,11 +119,14 @@ impl Culture {
         let vowel_probabilities = zip_into_weighted(&vowel_probabilities, &VOWELS);
         let consonant_probabilities = zip_into_weighted(&consonant_probabilities, &CONSONANTS);
 
+        let min_name_length = rng.gen_range(MIN_NAME_LEN, MAX_MIN_NAME_LEN);
         Culture {
             vowel_probabilities,
             consonant_probabilities,
-            flip_order_chance: rng.gen(),
-            max_name_length: rng.gen_range(1, 6),
+            flip_order_chance: rng.gen_range(0.0, MAX_FLIP_ORDER_CHANCE),
+            two_consonants_chance: rng.gen_range(0.0, MAX_TWO_CONSONANTS_CHANCE),
+            min_name_length: min_name_length,
+            max_name_length: rng.gen_range(min_name_length, MAX_NAME_LEN),
         }
 
     }
@@ -129,9 +141,13 @@ impl Culture {
         let mut consonant_probabilities = self.consonant_probabilities.clone();
         let consonant_probabilities = WeightedChoice::new(&mut consonant_probabilities);
 
-        for i in 0..rng.gen_range(1, self.max_name_length + 1) {
+        for i in 0..rng.gen_range(self.min_name_length, self.max_name_length + 1) {
             let mut vowel = vowel_probabilities.ind_sample(&mut rng).to_string();
             let mut consonant = consonant_probabilities.ind_sample(&mut rng).to_string();
+
+            if rng.gen::<f64>() < self.two_consonants_chance {
+                vowel = consonant_probabilities.ind_sample(&mut rng).to_string();
+            }
 
             if rng.gen::<f64>() < self.flip_order_chance {
                 if i == 0 {
