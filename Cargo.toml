@@ -1,0 +1,7 @@
+[package]
+name = "ascendancy-wars"
+version = "0.1.0"
+authors = ["Tomislav Ljubej <sporbie@gmail.com>"]
+
+[dependencies]
+rand = "*"
