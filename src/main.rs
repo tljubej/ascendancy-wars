@@ -2,8 +2,8 @@ extern crate rand;
 
 mod generation;
 mod world;
+mod actions;
 
-use generation::names::Culture;
 use world::World;
 
 fn main() {
